@@ -339,10 +339,19 @@ public class ControleDeAcesso {
             }
         }
     }
-    static void limparTodosOsRegistros(){
+
+    static void limparTodosOsRegistros() {
         String[][] deletarOsRegistros = {{"", "", ""}};
         matrizRegistrosDeAcesso = deletarOsRegistros;
+        System.out.println("Registros apagados com sucesso!");
 
+        try {
+            FileWriter fileWriter = new FileWriter("src/main/java/com/senai/controledeacesso/db.txt");
+            fileWriter.write("");
+
+        } catch (IOException e) {
+            System.out.println("Erro ao apagar os arquivos do DataBank " + e.getMessage());
+        }
     }
 
     // Funções para persistência de dados
