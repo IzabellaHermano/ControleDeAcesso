@@ -8,6 +8,10 @@ import java.util.Scanner;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 
 public class ControleDeAcesso {
     // Caminho para a pasta ControleDeAcesso no diretório do usuário
@@ -35,6 +39,7 @@ public class ControleDeAcesso {
     static ExecutorService executorCadastroIdAcesso = Executors.newSingleThreadExecutor();
 
     public static void main(String[] args) {
+        criarTxt();
         verificarEstruturaDeDiretorios();
         carregarDadosDoArquivo();
         conexaoMQTT = new CLienteMQTT(brokerUrl, topico, ControleDeAcesso::processarMensagemMQTTRecebida);
@@ -49,6 +54,19 @@ public class ControleDeAcesso {
         servidorHTTPS.pararServidorHTTPS();
     }
 
+    private static void criarTxt() {
+        String caminho = "C:\\Users\\Aluno\\Documents\\ControleDeAcesso\\src\\main\\java\\com\\senai\\controledeacesso\\db.txt";
+        try {
+            File arquivo = new File(caminho);
+            if (!arquivo.exists()) {
+                arquivo.createNewFile();
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+    }
+
     private static void menuPrincipal() {
         int opcao;
         do {
@@ -60,8 +78,10 @@ public class ControleDeAcesso {
                     |       3- Atualizar cadastro por id                    |
                     |       4- Deletar um cadastro por id                   |
                     |       5- Associar TAG ou cartão de acesso ao usuário  |
-                    |       6- Sair                                         |
-                    _________________________________________________________
+                    |       6- Pesquisar acesso por id                      |
+                    |       7- Limpar registro de acesso                    |
+                    |       8- Sair                                         |
+                    |_______________________________________________________|
                     """;
             System.out.println(menu);
             opcao = scanner.nextInt();
@@ -84,13 +104,19 @@ public class ControleDeAcesso {
                     aguardarCadastroDeIdAcesso();
                     break;
                 case 6:
+                    pesquisarRegistroPorId();
+                    break;
+                case 7:
+                    limparTodosOsRegistros();
+                    break;
+                case 8:
                     System.out.println("Fim do programa!");
                     break;
                 default:
                     System.out.println("Opção inválida!");
             }
 
-        } while (opcao != 6);
+        } while (opcao != 8);
     }
 
     private static void aguardarCadastroDeIdAcesso() {
@@ -151,13 +177,27 @@ public class ControleDeAcesso {
                         novaMatrizRegistro[linhaNovoRegistro][0] + " - " +
                         novaMatrizRegistro[linhaNovoRegistro][1]);
                 usuarioEncontrado = true; // Marca que o usuário foi encontrado
+                InserirNoDb(novaMatrizRegistro[linhaNovoRegistro]);
                 matrizRegistrosDeAcesso = novaMatrizRegistro;
                 break; // Sai do loop, pois já encontrou o usuário
             }
         }
+
         // Se não encontrou o usuário, imprime uma mensagem
         if (!usuarioEncontrado) {
             System.out.println("Id de Acesso " + idAcessoRecebido + " não cadastrado.");
+        }
+    }
+
+    private static void InserirNoDb(String[] valor) {
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter("C:\\Users\\Aluno\\Documents\\ControleDeAcesso\\src\\main\\java\\com\\senai\\controledeacesso\\db.txt", true))) {
+            for (String campo : valor) {
+                writer.write(campo + "\t"); // Usando tabulação para separar os campos
+                System.out.println(campo);
+            }
+            writer.newLine(); // Quebra de linha após cada registro
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 
@@ -272,15 +312,37 @@ public class ControleDeAcesso {
             if (i == idUsuario)
                 continue;
             novaMatriz[j] = matrizCadastro[i];
-            novaMatriz[j][0]= String.valueOf(j);
+            novaMatriz[j][0] = String.valueOf(j);
             j++;
         }
 
         matrizCadastro = novaMatriz;
-        matrizCadastro[0]=cabecalho;
+        matrizCadastro[0] = cabecalho;
         salvarDadosNoArquivo();
         System.out.println("-----------------------Deletado com sucesso------------------------\n");
         idUsuarioRecebidoPorHTTP = 0;
+    }
+
+    static void pesquisarRegistroPorId() {
+        exibirCadastro();
+        System.out.println("Digite o ID do usuário para buscar seu registro.");
+        int idUsuario = scanner.nextInt();
+        scanner.nextLine();
+        for (int i = 0; i < matrizCadastro.length; i++) {
+            if (i == idUsuario) {
+                String nome = matrizCadastro[i][2];
+                for (String[] strings : matrizRegistrosDeAcesso) {
+                    if (nome.equals(strings[0])) {
+                        System.out.println(Arrays.toString(strings));
+                    }
+                }
+            }
+        }
+    }
+    static void limparTodosOsRegistros(){
+        String[][] deletarOsRegistros = {{"", "", ""}};
+        matrizRegistrosDeAcesso = deletarOsRegistros;
+
     }
 
     // Funções para persistência de dados
@@ -315,10 +377,13 @@ public class ControleDeAcesso {
             for (String[] linha : matrizCadastro) {
                 writer.write(String.join(",", linha) + "\n");
             }
+            System.out.println("Dados salvos com sucesso no arquivo.");
         } catch (IOException e) {
+            System.out.println("Erro ao salvar dados no arquivo: " + e.getMessage());
             throw new RuntimeException(e);
         }
     }
+
 
     private static void verificarEstruturaDeDiretorios() {
         // Verifica se a pasta ControleDeAcesso existe, caso contrário, cria
