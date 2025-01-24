@@ -40,6 +40,7 @@ public class ControleDeAcesso {
 
     public static void main(String[] args) {
         criarTxt();
+        carregarDb();
         verificarEstruturaDeDiretorios();
         carregarDadosDoArquivo();
         conexaoMQTT = new CLienteMQTT(brokerUrl, topico, ControleDeAcesso::processarMensagemMQTTRecebida);
@@ -55,7 +56,7 @@ public class ControleDeAcesso {
     }
 
     private static void criarTxt() {
-        String caminho = "C:\\Users\\Aluno\\Documents\\ControleDeAcesso\\src\\main\\java\\com\\senai\\controledeacesso\\db.txt";
+        String caminho = "src\\main\\java\\com\\senai\\controledeacesso\\db.txt";
         try {
             File arquivo = new File(caminho);
             if (!arquivo.exists()) {
@@ -190,7 +191,7 @@ public class ControleDeAcesso {
     }
 
     private static void InserirNoDb(String[] valor) {
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter("C:\\Users\\Aluno\\Documents\\ControleDeAcesso\\src\\main\\java\\com\\senai\\controledeacesso\\db.txt", true))) {
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter("src\\main\\java\\com\\senai\\controledeacesso\\db.txt", true))) {
             for (String campo : valor) {
                 writer.write(campo + "\t"); // Usando tabulação para separar os campos
                 System.out.println(campo);
@@ -199,6 +200,23 @@ public class ControleDeAcesso {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+    private static void carregarDb(){
+        try ( BufferedReader  reader= new BufferedReader (new FileReader("src\\main\\java\\com\\senai\\controledeacesso\\db.txt"))){
+            String linha;
+            while ((linha = reader.readLine())!= null){
+                String [] campos =linha.split("\t");
+                for (String campo : campos){
+                    System.out.println(campo);
+                }
+                System.out.println("-----------------");
+
+            }
+
+        }catch (IOException e){
+
+        }
+
     }
 
     private static void cadastrarNovoIdAcesso(String novoIdAcesso) {
